@@ -3,6 +3,8 @@ Field cell culture incubator running Python - built out of a beer cooler with a 
 
 The Python script is wrapped in systemd service to auto-boot on power-up.
 
+![image](https://github.com/user-attachments/assets/4246c3a4-7e26-4cae-9302-62b492628352)
+
 ## Sensors
 ### Temperature
 Waterproof 1-wire interfaced [DS18B20 temperature sensors](https://www.adafruit.com/product/381) ($9.95 Adafruit) in a 5 sensor array. Wires are meshed via 3 separate [5-1 Wago flip connectors](https://www.adafruit.com/product/5616) ($1.95) and are wired signal to GPIO with a 1kOhm resistor ($0.1).
