@@ -1,6 +1,6 @@
 ![image](https://github.com/user-attachments/assets/4246c3a4-7e26-4cae-9302-62b492628352)
 
-Field cell culture incubator running Python - built out of a beer cooler with a Raspberry pi
+Field cell culture incubator running Python - built out of a beer cooler with a Raspberry pi.
 
 The Python script is wrapped in systemd service to auto-boot on power-up.
 
