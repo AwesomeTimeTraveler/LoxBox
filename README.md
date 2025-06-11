@@ -14,6 +14,17 @@ sudo systemctl enable incubator.service
 sudo systemctl start incubator.service
 ```
 
+- Start at boot.
+- Gracefully handle serial, 1-Wire, and I²C errors.
+- Prioritize N₂ displacement on startup.
+- Use PID for heater control.
+- Auto‐restart on any UI crash.
+- Log to a rotating file.
+
+To watch logs: `journalctl -fu incubator.service`
+
+
+
 # Brains
 [Raspberry Pi 3b+](https://www.raspberrypi.com/products/raspberry-pi-3-model-b-plus/) w/ 1GB RAM and a 64GB microSD card.
 
