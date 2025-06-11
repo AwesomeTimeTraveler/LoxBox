@@ -4,6 +4,16 @@ Field cell culture incubator running Python - built out of a beer cooler with a 
 
 The Python script is wrapped in systemd service to auto-boot on power-up.
 
+# Enabling systemctl service 
+
+`incubator.service`
+
+```
+sudo systemctl daemon-reload
+sudo systemctl enable incubator.service
+sudo systemctl start incubator.service
+```
+
 # Brains
 [Raspberry Pi 3b+](https://www.raspberrypi.com/products/raspberry-pi-3-model-b-plus/) w/ 1GB RAM and a 64GB microSD card.
 
