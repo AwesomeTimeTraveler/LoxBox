@@ -35,7 +35,7 @@ A low-cost, beer-cooler-turned-CO₂/O₂/temperature-controlled incubator for m
 | Solenoids      | [US Solid 1/4″ NPT brass, normally-closed, 12 V](https://ussolid.com/products/u-s-solid-electric-solenoid-valve-1-4-12v-dc-solenoid-valve-brass-body-normally-closed-viton-seal-html)                                | 2   | \$17       |
 | Power          | 65 W dual USB-C adapter + USB-C→barrel cables                        | —   | \$32       |
 | Displays       | Adafruit HT16K33 4-digit 7-segment I²C backpacks                     | 3   | \$12       |
-| Misc.          | [Wago connectors](https://www.adafruit.com/product/5616), [perfboard](https://www.adafruit.com/product/1609?gad_campaignid=21079227318), wiring, waterproof [Deutsch connector](https://www.digikey.com/en/products/detail/te-connectivity-deutsch-ict-connectors/DT04-12PA-LE14/10461760),[crimper](https://www.amazon.com/Knoweasy-KN-16-Crimping-Impression-Contacts/dp/B09Z6Q6K4W/ref=sr_1_8?sr=8-8)     | —   | \$20       |
+| Misc.          | [Wago connectors](https://www.adafruit.com/product/5616), [perfboard](https://www.adafruit.com/product/1609?gad_campaignid=21079227318), wiring, waterproof [Deutsch connector](https://www.digikey.com/en/products/detail/te-connectivity-deutsch-ict-connectors/DT04-12PA-LE14/10461760),[crimper](https://www.amazon.com/Knoweasy-KN-16-Crimping-Impression-Contacts/dp/B09Z6Q6K4W/ref=sr_1_8?sr=8-8)     | —   | \$70       |
 
 ---
 
