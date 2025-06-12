@@ -44,47 +44,47 @@ A low-cost, beer-cooler-turned-CO₂/O₂/temperature-controlled incubator for m
 - **Python 3.8+**  
 - OS: **Raspberry Pi OS** (64-bit)  
 - System packages:
-  ```bash
-  sudo apt update && sudo apt install -y \
-    python3-pip python3-serial python3-yaml python3-curses \
-    python3-rpi.gpio i2c-tools
-  ```
+```bash
+sudo apt update && sudo apt install -y \
+  python3-pip python3-serial python3-yaml python3-curses \
+  python3-rpi.gpio i2c-tools
+```
 
 - Python libraries (in a venv or globally):
-  ```
-  pip3 install \
-    w1thermsensor simple-pid adafruit-circuitpython-ht16k33 \
-    pyserial pyyaml
-  ```
+```
+pip3 install \
+  w1thermsensor simple-pid adafruit-circuitpython-ht16k33 \
+  pyserial pyyaml
+```
 
 Enable 1-Wire & I²C in raspi-config.
 
 # Quick Start
 1. Clone Repo
-   ```
-   git clone https://github.com/you/loxbox.git
-   cd loxbox
-   ```
+ ```
+ git clone https://github.com/you/loxbox.git
+ cd loxbox
+ ```
    
 2. Configure
   Edit `config.yaml` with your GPIO pins, setpoints, thresholds, PID gains, etc.
 
 3. Install systemd service
 
-  ```
-  sudo cp incubator.service /etc/systemd/system/
-  sudo systemctl daemon-reload
-  sudo systemctl enable incubator.service
-  sudo systemctl start incubator.service
-  ```
+```
+sudo cp incubator.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable incubator.service
+sudo systemctl start incubator.service
+```
 Logs ⇒ journalctl -fu incubator.service
 
 4. Manual run (for testing)
 
-  ```
-  source env/bin/activate         # if using a venv
-  python3 main.py
-  ```
+```
+source env/bin/activate         # if using a venv
+python3 main.py
+```
 
 # Wiring
 **Heaters:** 6 panels in parallel → 12 V relay common → GPIO pins (e.g. BCM 5, 6, 13, 19, 26, 27)
