@@ -12,20 +12,25 @@ class SafeDisplay(segments.Seg7x4):
     def safe_print(self, s):
         try:
             self.print(s)
+            self.show()                # <-- push to hardware!
         except Exception:
-            logger.exception("7-seg print failed")
+            logger.exception("7-segment print/show failed")
             raise
 
-def make_displays():
+def make_displays(i2c_addresses):
+    """
+    i2c_addresses: dict with keys 'o2', 'co2', 'temp'
+                   and values the respective I2C addresses.
+    Returns a dict of same keys mapping to SafeDisplay or None.
+    """
     i2c = busio.I2C(board.SCL, board.SDA)
     out = {}
-    for key, addr in [('o2', cfg['i2c']['disp_o2']),
-                      ('co2',cfg['i2c']['disp_co2']),
-                      ('temp',cfg['i2c']['disp_temp'])]:
+    for name, addr in i2c_addresses.items():
         try:
             disp = SafeDisplay(i2c, addr)
             disp.brightness = 1
-            out[key] = disp
+            out[name] = disp
         except Exception:
-            out[key] = None
+            logger.exception(f"Failed to init {name} display @{hex(addr)}")
+            out[name] = None
     return out
