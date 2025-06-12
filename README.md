@@ -81,12 +81,12 @@ To watch logs: `journalctl -fu incubator.service`
     python3-rpi.gpio i2c-tools
   ```
 
-Python libraries (in a venv or globally):
-```
-pip3 install \
-  w1thermsensor simple-pid adafruit-circuitpython-ht16k33 \
-  pyserial pyyaml
-```
+- Python libraries (in a venv or globally):
+  ```
+  pip3 install \
+    w1thermsensor simple-pid adafruit-circuitpython-ht16k33 \
+    pyserial pyyaml
+  ```
 
 Enable 1-Wire & I²C in raspi-config.
 
