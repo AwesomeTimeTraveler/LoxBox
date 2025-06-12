@@ -63,7 +63,7 @@ Enable 1-Wire & I²C in raspi-config.
 1. Clone Repo
  ```
  git clone https://github.com/AwesomeTimeTraveler/LoxBox
- cd loxbox
+ cd LoxBox
  ```
    
 2. Configure
