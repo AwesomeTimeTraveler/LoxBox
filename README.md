@@ -77,7 +77,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable incubator.service
 sudo systemctl start incubator.service
 ```
-Logs ⇒ journalctl -fu incubator.service
+Logs ⇒ `journalctl -fu incubator.service`
 
 4. Manual run (for testing)
 
@@ -95,11 +95,11 @@ python3 main.py
 
 **Gas sensors (UART):**
 
-- CO₂ → /dev/ttyS0 (Pi’s UART)
+- CO₂ → `/dev/ttyS0` (Pi’s UART)
 
-- O₂ → USB-UART → /dev/ttyUSB0
+- O₂ → USB-UART → `/dev/ttyUSB0`
 
-**I²C displays:** SCL/SDA to Pi I²C pins; addresses 0x70, 0x71, 0x72
+**I²C displays:** SCL/SDA to Pi I²C pins; addresses `0x70`, `0x71`, `0x72`
 
 
 # System Logic
