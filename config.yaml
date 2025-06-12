@@ -9,8 +9,8 @@ serial:
   co2_cmd:   "Z"
   co2_scale: 0.001
 
-read_interval: 0.5
-log_file:     "/home/pi/metrics_regulation_log.txt"
+read_interval: 0.2
+log_file:     "/home/brennan/incubator/metrics_regulation_log.txt"
 
 setpoints:
   temperature: 37.0
@@ -19,8 +19,18 @@ setpoints:
 
 thresholds:
   temperature: 0.98
-  o2:          0.85
-  co2:         0.85
+  #o2:          0.85
+  #co2:         0.85
+
+gas_thresholds:
+  o2:
+    continuous: 1.15    # 15% above setpoint
+    pulse:      1.10    # 10% above setpoint
+    off:        0.90    # 10% below setpoint
+  co2:
+    continuous: 0.75    # 25% below setpoint
+    pulse:      0.90    # 10% below setpoint
+    off:        1.10    # 10% above setpoint
 
 max_values:
   temperature: 50.0
@@ -30,7 +40,7 @@ max_values:
 gpio:
   o2_pin:   20
   co2_pin:  21
-  heaters:  [5, 6, 13, 19, 26, 27]
+  heaters:  [13, 19]
 
 i2c:
   disp_o2:   0x70
@@ -39,7 +49,8 @@ i2c:
 
 pid:
   heater:
-    Kp:            2.0
-    Ki:            0.1
-    Kd:            0.05
-    output_limits: [0, 1]
+    Kp:            4.0 # Proportional gain -How strongly the controller reacts to the current temperature error (setpoint − measured). A higher Kp means a larger burst of heat when you’re off-target.
+    # 2.0 originally 
+    Ki:            0.1 # Integral gain - How strongly the controller reacts to the accumulated temperature error (over time). This term helps eliminate any steady-state offset (e.g. if your system consistently runs 0.2 °C too cool).
+    Kd:            0.05 # Derivative gain - How strongly the controller reacts to the rate of change of the error (i.e. approaching or receding from setpoint). This term helps damp overshoot.
+    output_limits: [0, 1] # 0-100% Duty cycle
