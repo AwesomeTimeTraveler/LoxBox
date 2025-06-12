@@ -39,37 +39,6 @@ A low-cost, beer-cooler-turned-CO₂/O₂/temperature-controlled incubator for m
 
 ---
 
-
-
-
-
-
-
-Field cell culture incubator running Python - built out of a beer cooler with a Raspberry pi.
-
-# Dependencies
-
-
-# Enabling systemctl service 
-Copy the contents of `incubator.service` to the systemd directory:
-`sudo nano /etc/systemd/system/incubator.service`
-
-Enable and start the systemctl service:
-```
-sudo systemctl daemon-reload
-sudo systemctl enable incubator.service
-sudo systemctl start incubator.service
-```
-
-- Start at boot.
-- Gracefully handle serial, 1-Wire, and I²C errors.
-- Prioritize N₂ displacement on startup.
-- Use PID for heater control.
-- Auto‐restart on any UI crash.
-- Log to a rotating file.
-
-To watch logs: `journalctl -fu incubator.service`
-
 ## Software Dependencies
 
 - **Python 3.8+**  
