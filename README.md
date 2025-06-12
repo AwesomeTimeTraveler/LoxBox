@@ -2,12 +2,14 @@
 
 Field cell culture incubator running Python - built out of a beer cooler with a Raspberry pi.
 
-The Python script is wrapped in systemd service to auto-boot on power-up.
+# Dependencies
+
 
 # Enabling systemctl service 
+Copy the contents of `incubator.service` to the systemd directory:
+`sudo nano /etc/systemd/system/incubator.service`
 
-`incubator.service`
-
+Enable and start the systemctl service:
 ```
 sudo systemctl daemon-reload
 sudo systemctl enable incubator.service
@@ -24,13 +26,17 @@ sudo systemctl start incubator.service
 To watch logs: `journalctl -fu incubator.service`
 
 
+# Hardware 
+## Brains
+[Raspberry Pi 3b+](https://www.raspberrypi.com/products/raspberry-pi-3-model-b-plus/) ($35) w/ 1GB RAM and a 64GB Sandisk microSD card ($6)
 
-# Brains
-[Raspberry Pi 3b+](https://www.raspberrypi.com/products/raspberry-pi-3-model-b-plus/) w/ 1GB RAM and a 64GB microSD card.
+## Heaters
+
+Heating is provided by an array of 6 20W silicone 12V DC [heater panels](https://www.amazon.com/Silicone-Flexible-Industrial-Equipment-50x150mm/dp/B0BKL824TN/ref=sr_1_2?sr=8-2) ($24) each attached to a 24 fin, 60x150x25mm [aluminum heatsinks](https://www.amazon.com/Awxlumv-Aluminum-60x150x25mm-2-36x5-91x0-98-Amplifier/dp/B07VDHQDQT/ref=sr_1_2?sr=8-2) ($9.99 x6).
 
 ## Senses
 ### Temperature
-Waterproof 1-wire interfaced [DS18B20 temperature sensors](https://www.adafruit.com/product/381) ($9.95 x5) in a 5 sensor array. Wires are meshed via 3 separate [5-1 Wago flip connectors](https://www.adafruit.com/product/5616) ($1.95 x3) and are wired signal to GPIO with a 1kOhm resistor ($0.1).
+To control the heaters, I use an array of waterproof 1-wire interfaced [DS18B20 temperature sensors](https://www.adafruit.com/product/381) ($9.95 x5). Wires are meshed via 2 layers of 3-1 and 2-1 [Wago flip connectors](https://www.adafruit.com/product/5616) ($1.95 x6) and feed signal to GPIO with a 1kOhm resistor ($0.1) wired on an [Adafruit PermaProto perfboard](https://www.adafruit.com/product/1609?gad_campaignid=21079227318) ($3.33) with jumper cable headers ($.1 x3).
 
 ### Gas  
 I chose the [ExplorIR®-M 20% CO2 Sensor](https://www.co2meter.com/products/explorir-20-co2-smart-led-sensor?variant=43960991842502) (~$250 at time) and [LOX-O2 UV Flux 25% Oxygen Smart Sensor](https://www.co2meter.com/products/25-percent-oxygen-sensor?variant=43960891277510) ($273.90) as MX board units. UART interface.
