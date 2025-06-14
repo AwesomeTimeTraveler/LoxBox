@@ -1,8 +1,6 @@
 # controllers.py
 
-import time
-import logging
-import curses
+import time, logging, curses
 import RPi.GPIO as GPIO
 from simple_pid import PID
 
@@ -10,12 +8,6 @@ logger = logging.getLogger("incubator.controllers")
 
 class HeaterController:
     def __init__(self, pins, setpoint, threshold, pid_cfg):
-        """
-        pins      – list of BCM pins for heater relays
-        setpoint  – target temperature (°C)
-        threshold – fraction below setpoint to hold heaters ON continuously
-        pid_cfg   – dict with keys Kp, Ki, Kd, output_limits for PID
-        """
         self.pins   = pins
         self.setpt  = setpoint
         self.thresh = threshold
@@ -23,17 +15,12 @@ class HeaterController:
         self.pid.setpoint = setpoint
 
     def update(self, temp, now):
-        """
-        temp – current temperature
-        now  – elapsed seconds since start
-        """
-        duty  = self.pid(temp)  # 0..1
-        state = GPIO.HIGH if (now % 1) < duty else GPIO.LOW
+        duty  = max(0.0, min(1.0, self.pid(temp)))  # clamp to [0,1]
+        state = GPIO.HIGH if (now % 1.0) < duty else GPIO.LOW
         for p in self.pins:
             GPIO.output(p, state)
 
     def color(self, val):
-        """Return curses color_pair for a given temperature"""
         if val < self.setpt * self.thresh:
             return curses.color_pair(3)   # WHITE
         elif val < self.setpt:
@@ -41,61 +28,52 @@ class HeaterController:
         else:
             return curses.color_pair(10)  # RED_BOLD
 
+
 class GasController:
-    def __init__(self, pin, setpoint, gas_thresholds, invert=False):
+    def __init__(self, pin, setpoint, thresholds, invert=False):
         """
-        pin        – BCM pin for solenoid relay
-        setpoint   – target gas concentration
-        thresholds – dict with:
-                      continuous: factor for continuous mode
-                      pulse:      factor for stepping/pulse mode
-                      off:        factor for OFF mode (reverse side of pulse)
-        invert     – if True, comparisons invert (for O₂ displacement by N₂)
+        thresholds: dict with keys continuous, pulse, off
+        invert=False for CO₂, True for O₂
         """
-        self.pin        = pin
-        self.setpt      = setpoint
-        self.thresh_c   = gas_thresholds['continuous']
-        self.thresh_p   = gas_thresholds['pulse']
-        self.thresh_off = gas_thresholds['off']
-        self.invert     = invert
+        self.pin      = pin
+        self.setpt    = setpoint
+        self.th_cont  = thresholds['continuous']
+        self.th_pulse = thresholds['pulse']
+        self.th_off   = thresholds['off']
+        self.invert   = invert
 
     def update(self, val, now):
-        """
-        val – current gas concentration
-        now – elapsed seconds since start
-        """
-        if not self.invert:
-            # CO₂: continuous if val < setpt * thresh_c
-            cont  = val < self.setpt * self.thresh_c
-            pulse = val < self.setpt * self.thresh_p
+        if self.invert:
+            # O₂ displacement with N₂
+            if val > self.setpt * self.th_cont:
+                GPIO.output(self.pin, GPIO.HIGH)   # continuous purge
+            elif val > self.setpt * self.th_pulse:
+                state = GPIO.HIGH if (now % 1.0) < 0.5 else GPIO.LOW
+                GPIO.output(self.pin, state)       # pulsed
+            else:
+                GPIO.output(self.pin, GPIO.LOW)    # off
         else:
-            # O₂: continuous if val > setpt * thresh_c
-            cont  = val > self.setpt * self.thresh_c
-            pulse = val > self.setpt * self.thresh_p
-
-        if cont:
-            GPIO.output(self.pin, GPIO.HIGH)
-        elif pulse:
-            state = GPIO.HIGH if (now % 1) < 0.5 else GPIO.LOW
-            GPIO.output(self.pin, state)
-        else:
-            GPIO.output(self.pin, GPIO.LOW)
+            # CO₂ injection
+            if val < self.setpt * self.th_cont:
+                GPIO.output(self.pin, GPIO.HIGH)   # continuous injection
+            elif val < self.setpt * self.th_pulse:
+                state = GPIO.HIGH if (now % 1.0) < 0.5 else GPIO.LOW
+                GPIO.output(self.pin, state)       # pulsed
+            else:
+                GPIO.output(self.pin, GPIO.LOW)    # off
 
     def color(self, val):
-        """Return curses color_pair for a given gas concentration"""
-        if not self.invert:
-            # CO₂: under setpt*off → CYAN; under setpt → BLUE; over → RED
-            if val < self.setpt * self.thresh_off:
-                return curses.color_pair(2)   # CYAN
-            elif val < self.setpt:
-                return curses.color_pair(7)   # BLUE
+        if self.invert:
+            if val > self.setpt * self.th_cont:
+                return curses.color_pair(6)   # MAGENTA (continuous)
+            elif val > self.setpt * self.th_pulse:
+                return curses.color_pair(5)   # YELLOW  (pulse)
             else:
-                return curses.color_pair(8)   # RED
+                return curses.color_pair(1)   # GREEN   (off)
         else:
-            # O₂: over setpt*off → MAGENTA; over setpt → YELLOW; under → GREEN
-            if val > self.setpt * self.thresh_off:
-                return curses.color_pair(6)   # MAGENTA
-            elif val > self.setpt:
-                return curses.color_pair(5)   # YELLOW
+            if val < self.setpt * self.th_cont:
+                return curses.color_pair(2)   # CYAN    (continuous)
+            elif val < self.setpt * self.th_pulse:
+                return curses.color_pair(7)   # BLUE    (pulse)
             else:
-                return curses.color_pair(1)   # GREEN
+                return curses.color_pair(8)   # RED     (off)

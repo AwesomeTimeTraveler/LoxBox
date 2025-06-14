@@ -1,56 +1,57 @@
-# config.yaml
+# ─────────────────────────────────────────────────────────
+# Incubator configuration
+# ─────────────────────────────────────────────────────────
+
+log_file: /home/brennan/incubator/incubator.log
+
+gpio:
+  o2_pin: 20
+  co2_pin: 21
+  heaters: [13, 19]
 
 serial:
-  baud:      9600
-  o2_port:   "/dev/ttyUSB0"
-  o2_cmd:    "%"
-  o2_scale:  0.001
-  co2_port:  "/dev/serial0"
-  co2_cmd:   "Z"
-  co2_scale: 0.001
+  baud: 9600
+  o2_port: "/dev/serial0"
+  o2_cmd: "%"
+  o2_scale: 0.001
+  co2_port: "/dev/ttyUSB0"
+  co2_cmd: "Z"
+  co2_scale: 10/10000.0
 
-read_interval: 0.2
-log_file:     "/home/brennan/incubator/metrics_regulation_log.txt"
+i2c:
+  disp_o2: 0x70
+  disp_co2: 0x71
+  disp_temp: 0x72
 
 setpoints:
   temperature: 37.0
-  o2:          2.0
-  co2:         5.0
+  o2: 3.0
+  co2: 5.0
 
 thresholds:
+  # heater uses a single threshold (0…1) for switching to the PID regime
   temperature: 0.98
-  #o2:          0.85
-  #co2:         0.85
 
-gas_thresholds:
+  # gas controllers get three thresholds: continuous, pulse, off
   o2:
-    continuous: 1.15    # 15% above setpoint
-    pulse:      1.10    # 10% above setpoint
-    off:        0.90    # 10% below setpoint
+    continuous: 1.25   # if O₂ > setpt*1.25 → continuous N₂ purge
+    pulse:      1.10   # if O₂ > setpt*1.10 → pulsed purge
+    off:        0.90   # if O₂ < setpt*0.90 → absolutely off
+
   co2:
-    continuous: 0.75    # 25% below setpoint
-    pulse:      0.90    # 10% below setpoint
-    off:        1.10    # 10% above setpoint
-
-max_values:
-  temperature: 50.0
-  o2:          25.0
-  co2:         20.0
-
-gpio:
-  o2_pin:   20
-  co2_pin:  21
-  heaters:  [13, 19]
-
-i2c:
-  disp_o2:   0x70
-  disp_co2:  0x71
-  disp_temp: 0x72
+    continuous: 0.75   # if CO₂ < setpt*0.75 → continuous CO₂ in
+    pulse:      0.90   # if CO₂ < setpt*0.90 → pulsed injection
+    off:        1.10   # if CO₂ > setpt*1.10 → absolutely off
 
 pid:
   heater:
-    Kp:            4.0 # Proportional gain -How strongly the controller reacts to the current temperature error (setpoint − measured). A higher Kp means a larger burst of heat when you’re off-target.
-    # 2.0 originally 
-    Ki:            0.1 # Integral gain - How strongly the controller reacts to the accumulated temperature error (over time). This term helps eliminate any steady-state offset (e.g. if your system consistently runs 0.2 °C too cool).
-    Kd:            0.05 # Derivative gain - How strongly the controller reacts to the rate of change of the error (i.e. approaching or receding from setpoint). This term helps damp overshoot.
-    output_limits: [0, 1] # 0-100% Duty cycle
+    Kp:  1.0
+    Ki:  0.1
+    Kd:  0.01
+
+max_values:
+  o2:          25.0    # chart limits
+  co2:         10.0
+  temperature: 50.0
+
+read_interval: 0.5      # seconds between main loop iterations
