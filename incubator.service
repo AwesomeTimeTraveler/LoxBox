@@ -1,17 +1,29 @@
 [Unit]
-Description=Incubator Controller Service
+Description=Cell-Culture Incubator Controller
 After=network.target
 
 [Service]
-Type=simple
-User=pi
-WorkingDirectory=/home/pi/incubator
-ExecStart=/usr/bin/env python3 /home/pi/incubator/main.py
-Restart=always
-RestartSec=5
-StandardOutput=syslog
-StandardError=syslog
-SyslogIdentifier=incubator
+User=brennan
+WorkingDirectory=/home/brennan/incubator/source
+
+# Activate your venv and run main.py
+ExecStart=/bin/bash -lc 'source /home/brennan/incubator/env/bin/activate && python main.py'
+
+# On a normal stop (systemctl stop), first invoke --shutdown 
+ExecStop=/bin/bash -lc 'source /home/brennan/incubator/env/bin/activate && python main.py --shutdown'
+
+# After that completes (or even if it fails), force all GPIO off
+ExecStopPost=/usr/bin/env bash -lc 'python /home/brennan/incubator/source/force_gpio_off.py'
+
+# If main.py exits with non-zero (uncaught exception), restart it after 5s
+Restart=on-failure
+RestartSec=5s
+
+# Kill the entire control group (including curses children) on stop
+KillMode=control-group
+
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target

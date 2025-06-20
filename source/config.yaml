@@ -1,0 +1,52 @@
+# config.yaml
+
+serial:
+  baud:      9600
+  o2_port:   "/dev/ttyUSB1"
+  o2_cmd:    "%\r\n"
+  o2_scale:  0.001
+  co2_port:  "/dev/serial0"
+  co2_cmd:   "Z\r\n"
+  co2_scale: 0.001
+
+read_interval: 0.2
+log_file:     "/home/brennan/incubator/metrics_regulation_log.txt"
+
+setpoints:
+  temperature: 37.0
+  o2:          3.0
+  co2:         5.0
+
+thresholds:
+  temperature: 0.98
+  o2:
+    continuous: 1.25
+    pulse:      1.10
+    stop:        0.90
+  co2:
+    continuous: 0.75
+    pulse:      0.90
+    stop:        1.10
+
+
+max_values:
+  temperature: 50.0
+  o2:          25.0
+  co2:         20.0
+
+gpio:
+  o2_pin:   20
+  co2_pin:  21
+  heaters:  [13, 19]
+
+i2c:
+  disp_o2:   0x74
+  disp_co2:  0x72
+  disp_temp: 0x71
+
+pid:
+  heater:
+    Kp:            2.0
+    Ki:            0.1
+    Kd:            0.05
+    output_limits: [0, 1]
