@@ -99,7 +99,7 @@ python3 main.py
 
 - O₂ → USB-UART → `/dev/ttyUSB0`
 
-**I²C displays:** SCL/SDA to Pi I²C pins; addresses `0x70`, `0x71`, `0x72`
+**I²C displays:** SCL/SDA to Pi I²C pins; addresses `0x74`, `0x70`, `0x71`
 
 
 # System Logic
