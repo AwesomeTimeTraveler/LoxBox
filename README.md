@@ -87,7 +87,7 @@ python3 main.py
 ```
 
 # Wiring
-**Heaters:** 6 panels in parallel → 12 V relay common → GPIO pins (e.g. BCM 5, 6, 13, 19, 26, 27)
+**Heaters:** 6 panels in parallel → 12 V relay common → GPIO pins (e.g. BCM 13, 19)
 
 **Solenoids:** N₂ on BCM 20, CO₂ on BCM 21 via SPDT relays
 
