@@ -2,15 +2,17 @@
 
 import time, curses, logging
 
+import RPi.GPIO as GPIO
+
+
 logger = logging.getLogger("incubator.ui")
+data_logger = logging.getLogger("incubator.data")
 
 def curses_main(stdscr,
                 sensors,
                 controllers,
                 displays,
                 cfg):
-                #o2_max, co2_max, temp_max,
-                #read_interval):
     o2_max = cfg['max_values']['o2']
     co2_max = cfg['max_values']['co2']
     temp_max = cfg['max_values']['temperature']
@@ -53,27 +55,18 @@ def curses_main(stdscr,
     lbl_tmp   = [f"{x:.0f}" for x in tmp_ticks]
 
     while True:
-        # 2) read
+        # 2) read sensors
         now = time.time() - start
         t   = sensors['temp'].read()
         o   = sensors['o2'].read()
         c   = sensors['co2'].read()
 
-        # 3) control before change 6.19.25
+        # 3) control
         controllers['heater'].update(t, now)
-        #controllers['o2'].update(o, now)
-        #controllers['co2'].update(c, now)
 
-        # 3) control outputs
-        #controllers['heater'].update(t, now)
-
-        # O₂ (N₂ purge) always takes priority:
         o2_ctrl = controllers['o2']
         o2_ctrl.update(o, now)
 
-        # If we’re in the O₂‐continuous range, we forcibly hold CO₂ off;
-        # only when O₂ has fallen below its continuous threshold
-        # do we run the normal CO₂ logic.
         if o2_ctrl.is_continuous(o):
             controllers['co2'].force_off()
         else:
@@ -123,32 +116,47 @@ def curses_main(stdscr,
         stdscr.addstr(max_y-2, 1, "Press 'q' to quit.", curses.color_pair(4))
         stdscr.refresh()
 
-        # --- inside while True loop, after controllers update ---
-
         # --- Log measurement data ---
-        heater_duty = controllers['heater'].pid(temp=t)  # compute PID duty
-        o2_state = (
-            "CONT" if controllers['o2'].is_continuous(o)
-            else "PULSE" if controllers['o2']._in_pulse_band(o)
-            else "OFF"
-        )
-        co2_state = (
-            "CONT" if controllers['co2'].is_continuous(c)
-            else "PULSE" if controllers['co2']._in_pulse_band(c)
-            else "OFF"
-        )
+        heater_duty = controllers['heater'].pid(t)  # correct usage
+
+        def gas_state(ctrl, val):
+            if ctrl.is_continuous(val):
+                return "CONT"
+            pulse = (val > ctrl.setpt * ctrl.th_puls) if ctrl.invert else (val < ctrl.setpt * ctrl.th_puls)
+            return "PULSE" if pulse else "OFF"
+
+        o2_state  = gas_state(controllers['o2'],  o)
+        co2_state = gas_state(controllers['co2'], c)
 
         logger.info(
             "DATA T=%.2fC O2=%.2f%% CO2=%.2f%% HeaterDuty=%.2f O2=%s CO2=%s",
             t, o, c, heater_duty, o2_state, co2_state
         )
-        data_logger.info(
-            "%.2f,%.2f,%.2f,%.2f,%s,%s",
-            t, o, c, heater_duty, o2_state, co2_state
+
+        # if you want CSV too, ensure data_logger is imported from main
+        # data_logger.info(...)
+
+        # --- Structured logging for plotting ---
+        try:
+            heater_pin = cfg['gpio']['heaters'][0]
+            heater_state = "ON" if GPIO.input(heater_pin) == GPIO.HIGH else "OFF"
+        except Exception:
+            heater_state = "OFF"  # safe default if pin list empty
+
+        o2_state_txt  = "ON" if GPIO.input(cfg['gpio']['o2_pin'])  == GPIO.HIGH else "OFF"
+        co2_state_txt = "ON" if GPIO.input(cfg['gpio']['co2_pin']) == GPIO.HIGH else "OFF"
+
+        # Human-readable log line (unchanged style)
+        logger.info(
+            "DATA T=%.2fC O2=%.2f%% CO2=%.2f%% Heater=%s O2=%s CO2=%s",
+            t, o, c, heater_state, o2_state_txt, co2_state_txt
         )
 
-
-
+        # CSV row (timestamp comes from handler’s formatter)
+        data_logger.info(
+            "%.2f,%.2f,%.2f,%s,%s,%s",
+            t, o, c, heater_state, o2_state_txt, co2_state_txt
+        )
 
         # 5) exit or wait
         if stdscr.getch() == ord('q'):

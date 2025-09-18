@@ -43,9 +43,14 @@ class SerialGas:
         if not line:
             raise RuntimeError("empty response")
         tok = line.decode("ascii","ignore").strip().split()
-        if len(tok)<2 or not tok[1].isdigit():
+        if len(tok) < 2:
             raise ValueError(f"bad tokens {tok}")
-        return int(tok[1]) * self.scale
+        try:
+            val = float(tok[1])   # allow decimals like "19.8"
+        except ValueError:
+            raise ValueError(f"non-numeric token {tok[1]}")
+        return val * self.scale
+
 
     def read(self):
         try:

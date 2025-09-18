@@ -2,7 +2,7 @@
 
 serial:
   baud:      9600
-  o2_port:   "/dev/ttyUSB1"
+  o2_port:   "/dev/ttyUSB0"
   o2_cmd:    "%\r\n"
   o2_scale:  0.001
   co2_port:  "/dev/serial0"
