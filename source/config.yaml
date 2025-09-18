@@ -44,6 +44,19 @@ i2c:
   disp_co2:  0x72
   disp_temp: 0x71
 
+# config.yaml (new or adjusted fields)
+co2_pulse:
+  duty: 0.35         # ← gentler than 0.80
+  period: 1.0        # seconds; you can try 0.5 for finer pulses
+
+co2_startup:
+  duty: 0.20         # even gentler right after boot
+  duration_s: 120    # first 2 minutes after boot
+
+o2_pulse:
+  duty: 0.8          # keep existing behavior unless you want to change O₂ too
+  period: 1.0
+
 pid:
   heater:
     Kp:            2.0

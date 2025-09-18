@@ -1,11 +1,30 @@
 ![image](https://github.com/user-attachments/assets/4246c3a4-7e26-4cae-9302-62b492628352)
-# Low-Oxygen, Dual-Gas DIY Field Incubator
+
+# DIY Low-Oxygen, Dual-Gas Cell Culture Incubator Built for the Field
 
 A low-cost, beer-cooler-turned-CO₂/O₂/temperature-controlled incubator for mammalian cell culture, running on a Raspberry Pi 3B+.
 
 ---
 
-## Features
+# Hardware Overview
+
+| Function       | Part                                                                 | Qty | Cost (ea) |
+| -------------- | -------------------------------------------------------------------- | --- | --------- |
+| Brain          | [Raspberry Pi 3b+](https://www.raspberrypi.com/products/raspberry-pi-3-model-b-plus/) ($35) (1 GB RAM, 64 GB SD)                         | 1   | \$35       |
+| Heaters        | [12 V 20 W silicone panels](https://www.amazon.com/Silicone-Flexible-Industrial-Equipment-50x150mm/dp/B0BKL824TN/ref=sr_1_2?sr=8-2) + [aluminum heatsinks](https://www.amazon.com/Awxlumv-Aluminum-60x150x25mm-2-36x5-91x0-98-Amplifier/dp/B07VDHQDQT/ref=sr_1_2?sr=8-2)                       | 6   | \$24       |
+| Temp Sensors   | [DS18B20 waterproof 1-Wire](https://www.adafruit.com/product/381) one-wire interfaced                                            | 6   | \$10       |
+| CO₂ Sensor     | [ExplorIR-M 0–20 % CO₂](https://www.co2meter.com/products/explorir-20-co2-smart-led-sensor?variant=43960991842502) UART-interfaced                                       | 1   | \$250      |
+| O₂ Sensor      | [LOX-O2 LuminOx 0–25 % O₂](https://www.co2meter.com/products/25-percent-oxygen-sensor?variant=43960891277510)  UART-interfaced                                       | 1   | \$274      |
+| UART Interface | [TDI 232 chip](https://www.amazon.com/Communication-Connector-Compatible-Supports-Android/dp/B09F6FGMD7/ref=sr_1_3?sr=8-3)                                                         | 1   | \$13       |
+| Relays         | 2 channel 12 V [SPDT modules](https://www.amazon.com/Electronics-Salon-10Amp-Power-Module-Version/dp/B014F6EEVK/ref=sr_1_9?sr=8-9) for heaters + solenoids                  | 2   | \$14       |
+| Solenoids      | [US Solid 1/4″ NPT brass, normally-closed, 12 V](https://ussolid.com/products/u-s-solid-electric-solenoid-valve-1-4-12v-dc-solenoid-valve-brass-body-normally-closed-viton-seal-html)                                | 2   | \$17       |
+| Power          | 65 W dual USB-C adapter + USB-C→barrel cables                        | —   | \$32       |
+| Displays       | Adafruit HT16K33 4-digit 7-segment I²C backpacks                     | 3   | \$12       |
+| Misc.          | [Wago connectors](https://www.adafruit.com/product/5616), [perfboard](https://www.adafruit.com/product/1609?gad_campaignid=21079227318), wiring, waterproof [Deutsch connector](https://www.digikey.com/en/products/detail/te-connectivity-deutsch-ict-connectors/DT04-12PA-LE14/10461760),[crimper](https://www.amazon.com/Knoweasy-KN-16-Crimping-Impression-Contacts/dp/B09Z6Q6K4W/ref=sr_1_8?sr=8-8)     | —   | \$70       |
+
+
+# Control Logic
+
 
 - **Temperature control** via 6 × 12 V 20W heater panels and PID  
 - **Gas control**  
@@ -19,45 +38,76 @@ A low-cost, beer-cooler-turned-CO₂/O₂/temperature-controlled incubator for m
   - Rotating file logging  
 - **Runs at boot** under `systemd`
 
+
+## Timing Diagram
+```text
+    t (s) 0         1         2         3         4 
+
+          |.........|.........|.........|.........|.........
+Heater 
+(example PID ~60% duty, 1s window)
+
+          ██████···· ██████···· ██████···· ██████····
+
+O₂ valve 
+(Pulse 80% duty, 1s window)
+
+          ████████·· ████████·· ████████·· ████████··      
+
+CO₂ valve 
+(Soft-start 20% duty for first 120 s)
+
+          ██········ ██········ ██········ ██········ 
+          (continues like this until t=120 s)
+
+After t=120 s → CO₂ switches to normal pulse duty 
+(example 35%)
+
+          █████····· █████····· █████····· █████·····
+```
+
+## Gas Control Logic
+
+| Gas          | Condition (relative to setpoint × threshold)                    | State                                   | Notes                                                    |
+| ------------ | --------------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------- |
+| **O₂**       | `val > setpt × th_cont`                                         | **Continuous ON**                       | Purge N₂ strongly; highest priority. Forces CO₂ OFF.     |
+|              | `val > setpt × th_puls` (but ≤ cont)                            | **Pulse** (default 80% duty, 1s window) | Short bursts to lower O₂ further.                        |
+|              | `val > setpt × th_stop` (but ≤ pulse)                           | **OFF**                                 | Within safe band.                                        |
+|              | `val ≤ setpt × th_stop`                                         | **OFF**                                 | Stable or below target.                                  |
+| **CO₂**      | *Soft-start window* `t < 120 s` **AND** `val < setpt × th_puls` | **Pulse (20% duty)**                    | Gentle injection at boot to avoid overshoot.             |
+|              | `t ≥ 120 s` **AND** `val < setpt × th_cont`                     | **Continuous ON**                       | Chamber strongly undersaturated.                         |
+|              | `t ≥ 120 s` **AND** `val < setpt × th_puls` (but ≥ cont)        | **Pulse (e.g. 35% duty)**               | Configurable duty cycle after soft-start.                |
+|              | `val < setpt × th_stop` (but ≥ pulse)                           | **OFF**                                 | Within safe band.                                        |
+|              | `val ≥ setpt × th_stop`                                         | **OFF**                                 | Too high → injection disabled.                           |
+| **Priority** | If **O₂ = Continuous ON**                                       | **CO₂ forced OFF**                      | Prevents simultaneous strong O₂ purge and CO₂ injection. |
+
+
 ---
 
-## Hardware Overview
-
-| Function       | Part                                                                 | Qty | Cost (ea) |
-| -------------- | -------------------------------------------------------------------- | --- | --------- |
-| Brain          | [Raspberry Pi 3b+](https://www.raspberrypi.com/products/raspberry-pi-3-model-b-plus/) ($35) (1 GB RAM, 64 GB SD)                         | 1   | \$35       |
-| Heaters        | [12 V 20 W silicone panels](https://www.amazon.com/Silicone-Flexible-Industrial-Equipment-50x150mm/dp/B0BKL824TN/ref=sr_1_2?sr=8-2) + [aluminum heatsinks](https://www.amazon.com/Awxlumv-Aluminum-60x150x25mm-2-36x5-91x0-98-Amplifier/dp/B07VDHQDQT/ref=sr_1_2?sr=8-2)                       | 6   | \$24       |
-| Temp Sensors   | [DS18B20 waterproof 1-Wire](https://www.adafruit.com/product/381)                                            | 6   | \$10       |
-| CO₂ Sensor     | [ExplorIR-M 0–20 % CO₂](https://www.co2meter.com/products/explorir-20-co2-smart-led-sensor?variant=43960991842502) via UART                                       | 1   | \$250      |
-| O₂ Sensor      | [LOX-O2 LuminOx 0–25 % O₂](https://www.co2meter.com/products/25-percent-oxygen-sensor?variant=43960891277510) via UART                                       | 1   | \$274      |
-| UART Interface | [TDI 232 chip](https://www.amazon.com/Communication-Connector-Compatible-Supports-Android/dp/B09F6FGMD7/ref=sr_1_3?sr=8-3)                                                         | 1   | \$13       |
-| Relays         | 2 channel 12 V [SPDT modules](https://www.amazon.com/Electronics-Salon-10Amp-Power-Module-Version/dp/B014F6EEVK/ref=sr_1_9?sr=8-9) for heaters + solenoids                  | 2   | \$14       |
-| Solenoids      | [US Solid 1/4″ NPT brass, normally-closed, 12 V](https://ussolid.com/products/u-s-solid-electric-solenoid-valve-1-4-12v-dc-solenoid-valve-brass-body-normally-closed-viton-seal-html)                                | 2   | \$17       |
-| Power          | 65 W dual USB-C adapter + USB-C→barrel cables                        | —   | \$32       |
-| Displays       | Adafruit HT16K33 4-digit 7-segment I²C backpacks                     | 3   | \$12       |
-| Misc.          | [Wago connectors](https://www.adafruit.com/product/5616), [perfboard](https://www.adafruit.com/product/1609?gad_campaignid=21079227318), wiring, waterproof [Deutsch connector](https://www.digikey.com/en/products/detail/te-connectivity-deutsch-ict-connectors/DT04-12PA-LE14/10461760),[crimper](https://www.amazon.com/Knoweasy-KN-16-Crimping-Impression-Contacts/dp/B09Z6Q6K4W/ref=sr_1_8?sr=8-8)     | —   | \$70       |
-
----
 
 ## Software Dependencies
 
 - **Python 3.8+**  
-- OS: **Raspberry Pi OS** (64-bit)  
-- System packages:
+- OS: **Raspberry Pi OS** (64-bit) 
+  - Most (*if not all*) Pi OS options will work, as long as dependencies are met
+- **raspi-config:**
+  -  Enable 1-Wire & I²C
+- **System packages**:
 ```bash
 sudo apt update && sudo apt install -y \
   python3-pip python3-serial python3-yaml python3-curses \
   python3-rpi.gpio i2c-tools
 ```
 
-- Python libraries (in a venv or globally):
+- **Python libraries** (in a venv or globally):
 ```
 pip3 install \
   w1thermsensor simple-pid adafruit-circuitpython-ht16k33 \
   pyserial pyyaml
 ```
 
-Enable 1-Wire & I²C in raspi-config.
+
+
 
 # Quick Start
 1. Clone Repo

@@ -18,14 +18,6 @@ class OneWireTemps:
 
 class SerialGas:
     def __init__(self, port, cmd, scale, baud=9600, reopen_delay=2.0):
-        """
-        port           – e.g. "/dev/ttyUSB0"
-        cmd            – e.g. b"Z\r\n"  or b"%\r\n"
-        scale          – conversion factor into %
-        baud           – serial baud rate
-        reopen_delay   – seconds to wait before reopening after a failure
-        """
-        
         self.port_name    = port
         self.cmd           = cmd if isinstance(cmd,bytes) else cmd.encode('ascii')
         self.scale         = scale
@@ -34,8 +26,6 @@ class SerialGas:
         self._open_port()
 
     def _open_port(self):
-        """(Re)opens the serial port, or logs fatal and aborts if it cannot."""
-
         try:
             if hasattr(self, "ser"):
                 self.ser.close()
@@ -47,8 +37,6 @@ class SerialGas:
             raise
 
     def _read_once(self):
-        """Perform exactly one request-response round, raising on any I/O error."""
-
         self.ser.reset_input_buffer()
         self.ser.write(self.cmd)
         line = self.ser.readline()

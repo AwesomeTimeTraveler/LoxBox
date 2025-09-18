@@ -1,0 +1,133 @@
+--- a/force_gpio_off.py
++++ b/force_gpio_off.py
+@@
+-# Path to your config.yaml (adjust if needed)
+-CONFIG_PATH = "/home/brennan/incubator/config.yaml"
++# Path to your config.yaml (adjusted to match main.py)
++CONFIG_PATH = "/home/brennan/incubator/v6/config.yaml"
+ 
+ def main():
+     try:
+--- a/manual_o2_test.py
++++ b/manual_o2_test.py
+@@
+ from sensors import SerialGas
+ g = SerialGas("/dev/ttyUSB1", "%\r\n", 0.001, baud=9600)
++import time
+ for _ in range(5):
+     try:
+         print("O₂ →", g.read())
+--- a/sensors.py
++++ b/sensors.py
+@@ class SerialGas:
+-    def _read_once(self):
++    def _read_once(self):
+         self.ser.reset_input_buffer()
+         self.ser.write(self.cmd)
+         line = self.ser.readline()
+         if not line:
+             raise RuntimeError("empty response")
+         tok = line.decode("ascii","ignore").strip().split()
+-        if len(tok)<2 or not tok[1].isdigit():
+-            raise ValueError(f"bad tokens {tok}")
+-        return int(tok[1]) * self.scale
++        if len(tok) < 2:
++            raise ValueError(f"bad tokens {tok}")
++        try:
++            val = float(tok[1])  # allow decimal tokens
++        except ValueError:
++            raise ValueError(f"non-numeric token {tok[1]}")
++        return val * self.scale
+--- a/ui_curses.py
++++ b/ui_curses.py
+@@
+-        # 3) control before change 6.19.25
+-        controllers['heater'].update(t, now)
+-        #controllers['o2'].update(o, now)
+-        #controllers['co2'].update(c, now)
+-
+-        # 3) control outputs
+-        #controllers['heater'].update(t, now)
+-
+-        # O₂ (N₂ purge) always takes priority:
+-        o2_ctrl = controllers['o2']
+-        o2_ctrl.update(o, now)
+-
+-        # If we’re in the O₂‐continuous range, we forcibly hold CO₂ off;
+-        # only when O₂ has fallen below its continuous threshold
+-        # do we run the normal CO₂ logic.
+-        if o2_ctrl.is_continuous(o):
+-            controllers['co2'].force_off()
+-        else:
+-            controllers['co2'].update(c, now)
++        # --- Heater with failsafe ---
++        if t <= 0.0 or t > 80.0:  # invalid temp; force heater off
++            for p in cfg['gpio']['heaters']:
++                GPIO.output(p, GPIO.LOW)
++        else:
++            controllers['heater'].update(t, now)
++
++        # --- Gas control ---
++        # O₂ always has priority
++        o2_ctrl = controllers['o2']
++        o2_ctrl.update(o, now)
++
++        if o2_ctrl.is_continuous(o):
++            controllers['co2'].force_off()
++        else:
++            controllers['co2'].update(c, now)
++
++        # --- Log measurement data ---
++        heater_duty = controllers['heater'].pid(t)  # PID is callable
++
++        def gas_state(ctrl, val):
++            if ctrl.is_continuous(val):
++                return "CONT"
++            pulse = (val > ctrl.setpt * ctrl.th_puls) if ctrl.invert else (val < ctrl.setpt * ctrl.th_puls)
++            return "PULSE" if pulse else "OFF"
++
++        o2_state  = gas_state(controllers['o2'],  o)
++        co2_state = gas_state(controllers['co2'], c)
++
++        logger.info(
++            "DATA T=%.2fC O2=%.2f%% CO2=%.2f%% HeaterDuty=%.2f O2=%s CO2=%s",
++            t, o, c, heater_duty, o2_state, co2_state
++        )
++        data_logger.info(
++            "%.2f,%.2f,%.2f,%.2f,%s,%s",
++            t, o, c, heater_duty, o2_state, co2_state
++        )
+--- a/README.md
++++ b/README.md
+@@
+-```text
+-t (s) →   0                   1                   2                   3                   4                   5
+-          |                   |                   |                   |                   |                   |
+-
+-Heater
+-(PWM ~60%)
+-          ██████···· ██████···· ██████···· ██████···· ██████····
+-
+-O₂ valve
+-(Pulse 80%)
+-          ████████·· ████████·· ████████·· ████████·· ████████··
+-
+-CO₂ valve
+-(Soft-start 20% duty, 1st 2 s)
+-          ██········ ██········ █████····· █████····· █████·····
+-```
++```text
++t (s) →   0                   1                   2                   3                   4                   5
++          |                   |                   |                   |                   |                   |
++
++Heater (PWM ~60%)
++          ██████···· ██████···· ██████···· ██████···· ██████····
++
++O₂ valve (Pulse 80%)
++          ████████·· ████████·· ████████·· ████████·· ████████··
++
++CO₂ valve (Soft-start 20% duty, 1st 120 s → then normal duty)
++          ██········ ██········ ██········ ██········ ██········ ██········
++          (continues until t=120 s, then switches to normal duty e.g. █████·····)
++```
+

@@ -8,8 +8,14 @@ def curses_main(stdscr,
                 sensors,
                 controllers,
                 displays,
-                o2_max, co2_max, temp_max,
-                read_interval):
+                cfg):
+                #o2_max, co2_max, temp_max,
+                #read_interval):
+    o2_max = cfg['max_values']['o2']
+    co2_max = cfg['max_values']['co2']
+    temp_max = cfg['max_values']['temperature']
+    read_interval = cfg['read_interval']
+    
     # 1) init
     curses.curs_set(0)
     stdscr.nodelay(True)
@@ -116,6 +122,33 @@ def curses_main(stdscr,
 
         stdscr.addstr(max_y-2, 1, "Press 'q' to quit.", curses.color_pair(4))
         stdscr.refresh()
+
+        # --- inside while True loop, after controllers update ---
+
+        # --- Log measurement data ---
+        heater_duty = controllers['heater'].pid(temp=t)  # compute PID duty
+        o2_state = (
+            "CONT" if controllers['o2'].is_continuous(o)
+            else "PULSE" if controllers['o2']._in_pulse_band(o)
+            else "OFF"
+        )
+        co2_state = (
+            "CONT" if controllers['co2'].is_continuous(c)
+            else "PULSE" if controllers['co2']._in_pulse_band(c)
+            else "OFF"
+        )
+
+        logger.info(
+            "DATA T=%.2fC O2=%.2f%% CO2=%.2f%% HeaterDuty=%.2f O2=%s CO2=%s",
+            t, o, c, heater_duty, o2_state, co2_state
+        )
+        data_logger.info(
+            "%.2f,%.2f,%.2f,%.2f,%s,%s",
+            t, o, c, heater_duty, o2_state, co2_state
+        )
+
+
+
 
         # 5) exit or wait
         if stdscr.getch() == ord('q'):

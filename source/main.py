@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # main.py
-
+print("DEBUG: entered main.py")
 import os
 import sys
 import signal
@@ -24,15 +24,39 @@ with open("/home/brennan/incubator/v6/config.yaml") as f:
     cfg = yaml.safe_load(f)
 
 # 2) Setup rotating logger
-handler = RotatingFileHandler(
-    cfg['log_file'], maxBytes=1_000_000, backupCount=5
+from logging.handlers import TimedRotatingFileHandler
+import datetime
+
+# 2) Setup logging — text + CSV
+log_dir = cfg.get('log_dir', "/home/brennan/incubator/logs")
+os.makedirs(log_dir, exist_ok=True)
+
+# --- Human-readable log (daily rotation)
+text_handler = TimedRotatingFileHandler(
+    filename=os.path.join(log_dir, "incubator.log"),
+    when="midnight", interval=1, backupCount=14, utc=False
 )
-handler.setFormatter(logging.Formatter(
+text_handler.setFormatter(logging.Formatter(
     '%(asctime)s %(levelname)s: %(message)s'
 ))
 logger = logging.getLogger("incubator")
 logger.setLevel(logging.INFO)
-logger.addHandler(handler)
+logger.addHandler(text_handler)
+
+# --- CSV data log (daily rotation)
+csv_handler = TimedRotatingFileHandler(
+    filename=os.path.join(log_dir, "incubator_data.csv"),
+    when="midnight", interval=1, backupCount=14, utc=False
+)
+csv_handler.setFormatter(logging.Formatter('%(asctime)s,%(message)s'))
+data_logger = logging.getLogger("incubator.data")
+data_logger.setLevel(logging.INFO)
+data_logger.addHandler(csv_handler)
+
+# Write CSV header once per new file
+if not os.path.exists(os.path.join(log_dir, "incubator_data.csv")):
+    with open(os.path.join(log_dir, "incubator_data.csv"), "a") as f:
+        f.write("timestamp,temp_c,o2_pct,co2_pct,heater_duty,o2_state,co2_state\n")
 
 # 3) GPIO base mode & ensure everything off
 GPIO.setmode(GPIO.BCM)
@@ -108,6 +132,7 @@ signal.signal(signal.SIGINT, shutdown)
 signal.signal(signal.SIGTERM, shutdown)
 
 # 8) Run the UI in a self-healing loop
+print("DEBUG: about to start UI loop")
 while True:
     try:
         curses.wrapper(
@@ -115,10 +140,11 @@ while True:
             sensors,
             controllers,
             displays,
-            cfg['max_values']['o2'],
-            cfg['max_values']['co2'],
-            cfg['max_values']['temperature'],
-            cfg['read_interval']
+            cfg
+            #cfg['max_values']['o2'],
+            #cfg['max_values']['co2'],
+            #cfg['max_values']['temperature'],
+            #cfg['read_interval']
         )
         break
     except Exception:

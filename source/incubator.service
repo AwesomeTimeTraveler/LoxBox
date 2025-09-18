@@ -1,0 +1,18 @@
+[Unit]
+Description=Incubator Controller Service
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/brennan/incubator
+ExecStart=/usr/bin/env python3 /home/brennan/incubator/main.py
+Restart=always
+RestartSec=5
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=incubator
+ExecStopPost=/usr/bin/python3 /home/brennan/incubator/force_gpio_off.py
+
+[Install]
+WantedBy=multi-user.target
