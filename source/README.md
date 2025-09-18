@@ -49,9 +49,9 @@ and handles logging for monitoring and troubleshooting.
   - Logs structured data (`.log` and `.csv`) every cycle.
 - Allows user to quit with `q`.
 
-### `manual_o2_test.py`
-- Standalone script to test O₂ control logic.
-- Useful for validating gas solenoid and O₂ sensor behavior outside full system run.
+### `force_gpio_off.py`
+- Utility script to safely force all control pins LOW.
+- Used in shutdown/service stop to ensure heaters and solenoids are turned off.
 
 ---
 
